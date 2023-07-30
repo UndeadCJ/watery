@@ -1,7 +1,9 @@
+import datetime
 from _decimal import Decimal
 
 from django.db import models
 from django.db.models import Sum
+from django.utils import timezone
 
 
 class User(models.Model):
@@ -34,7 +36,7 @@ class User(models.Model):
         Retorna o total de água consumido hoje
         """
         
-        total = self.water_intake.aggregate(
+        total = self.water_intake.filter(date__exact=timezone.now()).aggregate(
             amount=Sum(
                 'quantity',
                 output_field=models.DecimalField(
