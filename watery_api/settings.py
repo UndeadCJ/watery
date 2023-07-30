@@ -41,6 +41,9 @@ INSTALLED_APPS = [
 
     # Libs
     'rest_framework',
+
+    # Apps
+    'tracker',
 ]
 
 MIDDLEWARE = [

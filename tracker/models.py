@@ -1,4 +1,3 @@
-import datetime
 from _decimal import Decimal
 
 from django.db import models
@@ -35,7 +34,7 @@ class User(models.Model):
         """
         Retorna o total de água consumido hoje
         """
-        
+
         total = self.water_intake.filter(date__exact=timezone.now()).aggregate(
             amount=Sum(
                 'quantity',
@@ -47,7 +46,7 @@ class User(models.Model):
         )
 
         return total['amount'] or Decimal(0)
-    
+
     @property
     def amount_left_to_goal(self):
         """
@@ -69,6 +68,9 @@ class User(models.Model):
         """
 
         return True if self.amount_left_to_goal == 0 else False
+
+    def __str__(self):
+        return self.name
 
 
 class WaterIntake(models.Model):
@@ -99,3 +101,6 @@ class WaterIntake(models.Model):
         null=False,
         blank=True
     )
+
+    def __str__(self):
+        return f"Quantidade: {self.quantity}ML"
