@@ -16,19 +16,12 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-    def get_object(self, pk):
-        """
-        Override do método get_object da view para caso não encontrar
-        o record correspondente a pk, fazer o raise do código 404
-        """
-        return get_object_or_404(User, pk=pk)
-
-    def get_or_create_point_in_history(self, pk):
+    def get_or_create_point_in_history(self):
         """
         Caso o dia do histórico exista ele é retornado, caso contrário é criado
         """
 
-        user = self.get_object(pk)
+        user = self.get_object()
 
         if history_obj := History.objects.filter(date__exact=timezone.now(), user_id__exact=user.pk).first():
             obj = history_obj
@@ -47,7 +40,7 @@ class UserViewSet(viewsets.ModelViewSet):
             Endpoint que registra o consumo de água de um usuário
         """
 
-        point_in_history = self.get_or_create_point_in_history(pk)
+        point_in_history = self.get_or_create_point_in_history()
         intake_serializer = IntakeSerializer(
             data={
                 **request.data,
@@ -57,13 +50,16 @@ class UserViewSet(viewsets.ModelViewSet):
         intake_serializer.is_valid(raise_exception=True)
         intake_serializer.save()
 
-        return Response(intake_serializer.data, status=status.HTTP_200_OK)
+        return Response(intake_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['GET'])
     def resume(self, request: Request, pk=None):
         """
             Endpoint que retorna o resumo do dia especificado caso exista
         """
+
+        # Checa se o usuário existe
+        self.get_object()
 
         # Caso o usuário envie uma data como parâmetro da query
         if param_date := request.query_params.get("date", None):
@@ -83,6 +79,9 @@ class UserViewSet(viewsets.ModelViewSet):
         """
             Endpoint que retorna o histórico do usuário de forma paginada
         """
+
+        # Checa se o usuário existe
+        self.get_object()
 
         queryset = History.objects.filter(user_id__exact=pk)
         page = self.paginate_queryset(queryset)

@@ -5,6 +5,9 @@ migrations:
 migrate:
 	python manage.py migrate
 
+test:
+	python manage.py test
+
 run:
 	python manage.py runserver 0.0.0.0:8000
 
