@@ -2,7 +2,6 @@ from _decimal import Decimal
 
 from django.db import models
 from django.db.models import Sum
-from django.utils import timezone
 
 
 class User(models.Model):
@@ -29,12 +28,46 @@ class User(models.Model):
         # Fórmula: Peso em KG * 35ML
         return self.weight * 35
 
-    def amount_taken(self, date=timezone.now()):
+    def __str__(self):
+        return self.name
+
+
+class History(models.Model):
+    """
+    Registra o consumo de água de um dia para um usuário
+    """
+
+    user_id = models.ForeignKey(
+        User,
+        verbose_name="Usuário",
+        related_name="history",
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False
+    )
+    goal = models.DecimalField(
+        verbose_name="Meta",
+        max_digits=6,
+        decimal_places=2,
+        help_text="Meta do dia em ML",
+        null=False,
+        blank=False
+    )
+    date = models.DateField(
+        verbose_name="Data",
+        auto_now_add=True,
+        help_text="Data",
+        null=False,
+        blank=True
+    )
+
+    @property
+    def amount_taken(self):
         """
         Retorna o total de água consumido no dia
         """
 
-        total = self.water_intake.filter(date__exact=date).aggregate(
+        total = self.intake.aggregate(
             amount=Sum(
                 'quantity',
                 output_field=models.DecimalField(
@@ -46,12 +79,13 @@ class User(models.Model):
 
         return total['amount'] or Decimal(0)
 
-    def amount_left(self, date=timezone.now()):
+    @property
+    def amount_left(self):
         """
         Retorna o valor faltante para bater a meta do dia
         """
 
-        amount_left = self.daily_goal - self.amount_taken(date)
+        amount_left = self.goal - self.amount_taken
 
         # Caso a meta seja passada (mais água consumida), é retornado 0
         if amount_left < 0:
@@ -59,34 +93,39 @@ class User(models.Model):
 
         return amount_left
 
-    def reached_goal(self, date=timezone.now()):
+    @property
+    def reached_goal(self):
         """
         Retorna se a meta do dia foi batida ou não
         """
 
         # Se a quantia restante for igual a zero, a meta foi batida
-        return self.amount_left(date) == 0
+        return self.amount_left == 0
 
-    def percent_amount(self, date=timezone.now()):
+    @property
+    def percent_amount(self):
         """
         Calcula o percentual da meta já bebido
         """
 
-        return round((self.amount_taken(date) * 100) / self.daily_goal, 2)
+        return round((self.amount_taken * 100) / self.goal, 2)
 
     def __str__(self):
-        return self.name
+        return f"Consumo do dia {self.date} por {self.user_id}"
+
+    class Meta:
+        unique_together = [['user_id', 'date']]
 
 
-class WaterIntake(models.Model):
+class Intake(models.Model):
     """
     Registra o consumo de água para um usuário
     """
 
-    user_id = models.ForeignKey(
-        User,
-        verbose_name="Usuário",
-        related_name="water_intake",
+    history_id = models.ForeignKey(
+        History,
+        verbose_name="Histórico",
+        related_name="intake",
         on_delete=models.CASCADE,
         null=False,
         blank=False
@@ -98,13 +137,6 @@ class WaterIntake(models.Model):
         help_text="Quantidade em ML",
         null=False,
         blank=False
-    )
-    date = models.DateField(
-        verbose_name="Data",
-        auto_now_add=True,
-        help_text="Data do consumo",
-        null=False,
-        blank=True
     )
 
     def __str__(self):
