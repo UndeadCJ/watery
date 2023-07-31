@@ -1,7 +1,7 @@
 from django.contrib import admin
 
-from tracker.models import User, WaterIntake
+from tracker.models import User, Intake, History
 
-# Register your models here.
 admin.site.register(User)
-admin.site.register(WaterIntake)
+admin.site.register(History)
+admin.site.register(Intake)
