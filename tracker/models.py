@@ -21,7 +21,7 @@ class User(models.Model):
     )
 
     @property
-    def daily_water_intake_goal(self):
+    def daily_goal(self):
         """
         Retorna a meta diária de consumo de água. Resultado em ML
         """
@@ -29,13 +29,12 @@ class User(models.Model):
         # Fórmula: Peso em KG * 35ML
         return self.weight * 35
 
-    @property
-    def water_amount_taken_today(self):
+    def amount_taken(self, date=timezone.now()):
         """
-        Retorna o total de água consumido hoje
+        Retorna o total de água consumido no dia
         """
 
-        total = self.water_intake.filter(date__exact=timezone.now()).aggregate(
+        total = self.water_intake.filter(date__exact=date).aggregate(
             amount=Sum(
                 'quantity',
                 output_field=models.DecimalField(
@@ -47,13 +46,12 @@ class User(models.Model):
 
         return total['amount'] or Decimal(0)
 
-    @property
-    def amount_left_to_goal(self):
+    def amount_left(self, date=timezone.now()):
         """
-        Retorna o valor faltante para bater a meta
+        Retorna o valor faltante para bater a meta do dia
         """
 
-        amount_left = self.daily_water_intake_goal - self.water_amount_taken_today
+        amount_left = self.daily_goal - self.amount_taken(date)
 
         # Caso a meta seja passada (mais água consumida), é retornado 0
         if amount_left < 0:
@@ -61,13 +59,20 @@ class User(models.Model):
 
         return amount_left
 
-    @property
-    def goal_reached(self):
+    def reached_goal(self, date=timezone.now()):
         """
-        Retorna se a meta foi batida ou não
+        Retorna se a meta do dia foi batida ou não
         """
 
-        return True if self.amount_left_to_goal == 0 else False
+        # Se a quantia restante for igual a zero, a meta foi batida
+        return self.amount_left(date) == 0
+
+    def percent_amount(self, date=timezone.now()):
+        """
+        Calcula o percentual da meta já bebido
+        """
+
+        return round((self.amount_taken(date) * 100) / self.daily_goal, 2)
 
     def __str__(self):
         return self.name
