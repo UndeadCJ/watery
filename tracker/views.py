@@ -4,10 +4,10 @@ from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
-from rest_framework.generics import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from tracker.errors import BadParams
 from tracker.models import User, History
 from tracker.serializers import UserSerializer, IntakeSerializer, HistorySerializer
 
@@ -63,7 +63,11 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # Caso o usuário envie uma data como parâmetro da query
         if param_date := request.query_params.get("date", None):
-            date = datetime.strptime(param_date, "%Y-%m-%d").date()
+            try:
+                date = datetime.strptime(param_date, "%Y-%m-%d").date()
+            except ValueError:
+                raise BadParams(f"Parâmetro 'date' inválido")
+
         else:
             date = timezone.now()
 

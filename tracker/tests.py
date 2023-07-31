@@ -123,6 +123,13 @@ class UserResumeTest(APITestCase):
         )
         self.assertEqual(body['reached_goal'], False)
 
+    def test_invalid_resume_date(self):
+        response = client.get(
+            f"{reverse('user-resume', kwargs={'pk': self.user.pk})}?date=invalid_date",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_history(self):
         response = client.get(
             reverse('user-history', kwargs={'pk': self.user.pk}),
